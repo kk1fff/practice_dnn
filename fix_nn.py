@@ -8,12 +8,17 @@ import numpy as np
 NB_EPOCH = 1000
 BATCH_SIZE = 32
 
-data = np.load('human_with_label.npz')
+data = np.load('fixer_train.npz')
 print("Data Loaded")
 
-train = data['imgs']/255.
-train = np.reshape(train, (-1, 100, 100, 3))
-labels = data['labels']
+train = data['trainings']/255.
+labels = data['results']/255.
+
+# could be a 3-channel image, flatten
+#train = np.reshape(train, (-1,))
+#labels = np.reshape(labels, (-1,))
+
+OUT_DIM = labels.shape[1]
 
 indices = np.random.permutation(train.shape[0])
 valid_cnt = int(train.shape[0] * 0.2)
@@ -33,53 +38,45 @@ def MiniBatchGenerator(batch_size, train, label):
         for x, y in zip(train, label):
             buf_x.append(x)
             buf_y.append(y)
-            if len(buf_x) >= 1:
+            if len(buf_x) >= batch_size:
                 yield np.array(buf_x), np.array(buf_y)
                 buf_x = []
                 buf_y = []
-    # if len(buf_x) > 0:
-    #     yield np.array(buf_x), np.array(buf_y)
         
 model = Sequential()
-model.add(Convolution2D(64, 20, 20,
-                        subsample=(1, 1),
-                        border_mode='same',
-                        input_shape=(100, 100, 3)))
-model.add(Activation("relu"))
-model.add(MaxPooling2D(pool_size=(2, 2)))
 
-model.add(Convolution2D(128, 12, 12,
-                        subsample=(1, 1),
-                        border_mode='same'))
+model.add(Dense(input_shape=train.shape[1:], output_dim=200))
 model.add(Activation("relu"))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-
-model.add(Flatten())
-
-model.add(Dense(180))
+model.add(Dense(150))
 model.add(Activation("relu"))
-model.add(Dense(180))
+model.add(Dense(150))
 model.add(Activation("relu"))
-model.add(Dense(output_dim=2))
-model.add(Activation("softmax"))
+model.add(Dense(90))
+model.add(Activation("relu"))
+model.add(Dense(80))
+model.add(Activation("relu"))
+model.add(Dense(70))
+model.add(Activation("relu"))
+model.add(Dense(output_dim=OUT_DIM))
+model.add(Activation("tanh"))
 
 sgd = SGD(lr=0.001, decay=1e-6, momentum=0.9, nesterov=True)
-model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['categorical_accuracy'])
+model.compile(loss='mean_squared_error',
+              optimizer=sgd,
+              metrics=['mean_squared_error'])
 print(train.shape)
 
 # Train in mini batch.
 print("Training:")
-model.fit_generator(MiniBatchGenerator(BATCH_SIZE, train, label_train), BATCH_SIZE, NB_EPOCH)
-# for e in range(NB_EPOCH):
-#     print("Epoch: {}".format(e))
-#     for train, label in MiniBatchGenerator(BATCH_SIZE, train, label_train):
-#         model.train_on_batch(train, label)
+model.fit_generator(MiniBatchGenerator(BATCH_SIZE, train, label_train),
+                    BATCH_SIZE,
+                    NB_EPOCH)
 
 score = model.evaluate(test, label_test, batch_size=16)
 print("Score:")
 print(score)
 
-with open("human_model.json", "w") as o:
+with open("picture_fix.json", "w") as o:
     o.write(model.to_json())
 
-model.save('human_model_weights.h5')
+model.save('picture_fix.h5')

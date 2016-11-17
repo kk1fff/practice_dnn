@@ -3,5 +3,5 @@ __pycache__/*
 .DS_Store
 .ipynb_checkpoints/*
 human_model.json
-human_model_weights.h5
-human_with_label.npz
+*.h5
+*.npz
