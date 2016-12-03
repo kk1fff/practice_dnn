@@ -5,7 +5,7 @@ from keras.layers.core import Flatten, Dropout, Dense, Activation
 from keras.optimizers import SGD
 import numpy as np
 
-NB_EPOCH = 1000
+NB_EPOCH = 10000
 BATCH_SIZE = 32
 
 data = np.load('fixer_train.npz')
@@ -13,10 +13,6 @@ print("Data Loaded")
 
 train = data['trainings']/255.
 labels = data['results']/255.
-
-# could be a 3-channel image, flatten
-#train = np.reshape(train, (-1,))
-#labels = np.reshape(labels, (-1,))
 
 OUT_DIM = labels.shape[1]
 
@@ -38,7 +34,7 @@ def MiniBatchGenerator(batch_size, train, label):
         for x, y in zip(train, label):
             buf_x.append(x)
             buf_y.append(y)
-            if len(buf_x) >= batch_size:
+            if len(buf_x) >= 1:
                 yield np.array(buf_x), np.array(buf_y)
                 buf_x = []
                 buf_y = []
@@ -47,20 +43,41 @@ model = Sequential()
 
 model.add(Dense(input_shape=train.shape[1:], output_dim=200))
 model.add(Activation("relu"))
-model.add(Dense(150))
+
+model.add(Dense(6400))
 model.add(Activation("relu"))
-model.add(Dense(150))
+
+model.add(Dense(6400))
 model.add(Activation("relu"))
-model.add(Dense(90))
+
+model.add(Dense(2000))
 model.add(Activation("relu"))
-model.add(Dense(80))
+
+model.add(Dense(2000))
 model.add(Activation("relu"))
-model.add(Dense(70))
+
+model.add(Dense(1000))
 model.add(Activation("relu"))
-model.add(Dense(output_dim=OUT_DIM))
+
+model.add(Dense(500))
+model.add(Activation("relu"))
+
+model.add(Dense(500))
+model.add(Activation("relu"))
+
+model.add(Dense(400))
+model.add(Activation("relu"))
 model.add(Activation("tanh"))
 
-sgd = SGD(lr=0.001, decay=1e-6, momentum=0.9, nesterov=True)
+model.add(Dense(400))
+model.add(Activation("relu"))
+model.add(Activation("tanh"))
+
+model.add(Dense(output_dim=OUT_DIM))
+model.add(Activation("relu"))
+model.add(Activation("tanh"))
+
+sgd = SGD(lr=0.001, decay=1e-5, momentum=0.9, nesterov=True)
 model.compile(loss='mean_squared_error',
               optimizer=sgd,
               metrics=['mean_squared_error'])
